@@ -132,6 +132,7 @@ int main(int argc, char * argv[]){
         erreur("Veuillez renseigner un port pour le serveur !");
     }
 
+    //Lecture des entrées utilisateur
     char * entrees_utilisateur = (char *) malloc(sizeof(char)*MAX_BUFFER);
     pthread_t thread_entrees_utilisateur;
     pthread_create(&thread_entrees_utilisateur,NULL,entrees_utilisateur,(void *) entrees_utilisateur);
