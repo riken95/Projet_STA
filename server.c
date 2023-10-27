@@ -12,6 +12,10 @@
 #include <string.h>
 
 
+//Librairies en plus
+#include <stdio.h>
+#include <stdlib.h>
+
 //Constantes utiles pour le code
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -23,7 +27,8 @@ typedef struct in_addr IN_ADDR;
 #define MAX_BUFFER 256
 
 
-
+//Importation des headers
+#include "misc.h"
 
 
 /**
@@ -112,3 +117,24 @@ void * affichage(void * arg);
  *
 */
 int main(int argc, char * argv[]);
+
+
+
+
+
+int main(int argc, char * argv[]){
+
+    //Assignation du port
+    int port;
+    if(argc<=2){
+        port = atoi(argv[1]);
+    }else{
+        erreur("Veuillez renseigner un port pour le serveur !");
+    }
+
+    char * entrees_utilisateur = (char *) malloc(sizeof(char)*MAX_BUFFER);
+    pthread_t thread_entrees_utilisateur;
+    pthread_create(&thread_entrees_utilisateur,NULL,entrees_utilisateur,(void *) entrees_utilisateur);
+
+
+}

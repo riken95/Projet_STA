@@ -11,7 +11,7 @@
  *              Si la connexion au serveur s'arrête on relance une tentative de connexion
  *              ...
  * @param  argc: longueur des arguments
- * @param  argv[]: port du serveur - nom du train
+ * @param  argv[]: port du serveur - IP du serveur - nom du train
  * @retval 
  *
 */
