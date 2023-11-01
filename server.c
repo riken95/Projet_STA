@@ -51,12 +51,13 @@ void * accepter_connexions_tcp(void * arg){
       SocketNouvelleConnexion_Temporaire = accept(*(SocketsEtAdresse->sock), (SOCKADDR *) SocketsEtAdresse->csin,&sinsize);
       if(SocketNouvelleConnexion_Temporaire == INVALID_SOCKET){
         printf("Erreur socket entrante\n");
+        
+      }else{
+        printf("Nouvelle connexion entrante !\n");
         pthread_mutex_lock(&Donnees_Thread->mutex); //On bloque la mémoire aux autres threads avant écriture
         *(SocketsEtAdresse->sock_cible) = SocketNouvelleConnexion_Temporaire;
         printf("Socket : %d\n",SocketNouvelleConnexion_Temporaire);
         pthread_mutex_unlock(&Donnees_Thread->mutex);
-      }else{
-        printf("Nouvelle connexion entrante !\n");
       }
       
     }
