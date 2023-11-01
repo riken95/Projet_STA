@@ -47,9 +47,11 @@ typedef struct in_addr IN_ADDR;
 struct ThreadData{
     pthread_t thread;
     pthread_mutex_t mutex;
-    char * shared_data;
+    void * shared_data;
 };
 typedef struct ThreadData ThreadData;
+
+
 
 /**
  * @brief  Utile à la fonction accepter_connexions_tcp
@@ -61,7 +63,14 @@ struct ArgConnexionsEntrantes{
     SOCKET * sock;
     SOCKET * sock_cible;
 };
-
+struct ArgConnexionsEntrantes * initArgConnexionsEntrantes(){
+    struct ArgConnexionsEntrantes * arg = (struct ArgConnexionsEntrantes *) malloc(sizeof(struct ArgConnexionsEntrantes));
+    arg->csin = (SOCKADDR_IN *) malloc(sizeof(SOCKADDR_IN));
+    arg->sock = (SOCKET *) malloc(sizeof(SOCKET));
+    return arg;
+    //Celui-là ne nous intéresse pas
+    //arg->sock_cible = (SOCKET *) malloc(sizeof(SOCKET));
+}
 
 /**
  * @brief  Définit une structure qui contient toutes les variables utiles

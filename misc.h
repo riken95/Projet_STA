@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifndef MISC_H
 #define MISC_H
 #define AFFICHER_ERREURS 1
@@ -11,6 +14,9 @@
  * @retval None
  *
 */
-void erreur(char message[]);
-
+void erreur(char message[]){
+    if(AFFICHER_ERREURS==1){
+        printf("%s",message);
+    }exit(-1);
+}
 #endif
