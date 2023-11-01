@@ -46,17 +46,18 @@ void * accepter_connexions_tcp(void * arg){
     SOCKET SocketNouvelleConnexion_Temporaire;
     socklen_t sinsize = sizeof *(SocketsEtAdresse->csin);
     
+    //Boucle principale
     while(1){
       SocketNouvelleConnexion_Temporaire = accept(*(SocketsEtAdresse->sock), (SOCKADDR *) SocketsEtAdresse->csin,&sinsize);
       if(SocketNouvelleConnexion_Temporaire == INVALID_SOCKET){
         printf("Erreur socket entrante\n");
+        pthread_mutex_lock(&Donnees_Thread->mutex); //On bloque la mémoire aux autres threads avant écriture
+        *(SocketsEtAdresse->sock_cible) = SocketNouvelleConnexion_Temporaire;
+        printf("Socket : %d\n",SocketNouvelleConnexion_Temporaire);
+        pthread_mutex_unlock(&Donnees_Thread->mutex);
       }else{
         printf("Nouvelle connexion entrante !\n");
       }
-      pthread_mutex_lock(&Donnees_Thread->mutex); //On bloque la mémoire aux autres threads avant écriture
-      *(SocketsEtAdresse->sock_cible) = SocketNouvelleConnexion_Temporaire;
-      printf("Socket : %d\n",SocketNouvelleConnexion_Temporaire);
-      pthread_mutex_unlock(&Donnees_Thread->mutex);
       
     }
     
@@ -116,10 +117,6 @@ int main(int argc, char * argv[]){
     struct ArgConnexionsEntrantes * socket_source_cible = initArgConnexionsEntrantes();
     initialiser_socket_connexions_tcp_entrantes(socket_source_cible->sock,socket_source_cible->csin);
 
-    
-    //Socket qui va recevoir les nouvelles connexions
-    SOCKET * SocketNouvellesConnexions;
-    socket_source_cible->sock_cible = SocketNouvellesConnexions;
 
 
     //Lancement du processus d'écoute permanente de nouvelles connexions
@@ -130,13 +127,25 @@ int main(int argc, char * argv[]){
     pthread_create(&(dataAccepterConnexions.thread),NULL,accepter_connexions_tcp,
     (void *) &dataAccepterConnexions);
     
+
+    //Boucle principale du main
     while(1){
-      usleep(10000);
-      if(strcmp(EntreesUtilisateur,"")!=0){
+      usleep(CLOCK_US);//horloge
+
+      if(strcmp(EntreesUtilisateur,"")!=0){//Détection entrée utilisateur
+        if(strcmp(EntreesUtilisateur,"quit")==0){
+          exit(EXIT_SUCCESS);
+        }
+
         pthread_mutex_lock(&dataThreadEntreesUtilisateur.mutex);
         printf("Vous avez écrit : %s\n",EntreesUtilisateur);
-        strcpy(EntreesUtilisateur,"");
+        strcpy(EntreesUtilisateur,"");//Réinitialisation de la chaine de caractères
         pthread_mutex_unlock(&dataThreadEntreesUtilisateur.mutex);
+      }
+
+      if(socket_source_cible->sock_cible != NULL){//Nouvelle connexion
+        printf("Nouvelle connexion !");
+        socket_source_cible->sock_cible = NULL;
       }
     }
 
