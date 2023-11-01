@@ -73,14 +73,11 @@ void * entrees_utilisateur(void * arg){
   //Chaine de caractères qui va écouter à l'aide de getline les entrées utilisateur
   char * EntreesUtilisateurTemp = NULL;
 
-  ssize_t read;
-  size_t len;
+  ssize_t len = 0;
   while(1){
-    read = getline(&EntreesUtilisateur,&len,stdin);
-
-    if(read != -1){
-
+    if(getline(&EntreesUtilisateurTemp,&len,stdin) != -1){
       if(len < MAX_BUFFER){
+        EntreesUtilisateurTemp[strcspn(EntreesUtilisateurTemp, "\n")] = '\0';
         pthread_mutex_lock(&Donnes_Thread->mutex);
         strcpy(EntreesUtilisateur,EntreesUtilisateurTemp);
         pthread_mutex_unlock(&Donnes_Thread->mutex);
@@ -106,7 +103,9 @@ int main(int argc, char * argv[]){
     //Initialisation de la lecture des entrées utilisateur
     
     char * EntreesUtilisateur = (char *) malloc(sizeof(char)*MAX_BUFFER);
+    strcpy(EntreesUtilisateur,""); //On l'initialise à vide
     ThreadData dataThreadEntreesUtilisateur;
+    pthread_mutex_init(&dataThreadEntreesUtilisateur.mutex,NULL);
     dataThreadEntreesUtilisateur.shared_data = EntreesUtilisateur;
 
     pthread_create(&(dataThreadEntreesUtilisateur.thread),NULL,entrees_utilisateur,
@@ -125,13 +124,20 @@ int main(int argc, char * argv[]){
 
     //Lancement du processus d'écoute permanente de nouvelles connexions
     ThreadData dataAccepterConnexions;
+    pthread_mutex_init(&dataAccepterConnexions.mutex,NULL);
     dataAccepterConnexions.shared_data = socket_source_cible;
     
     pthread_create(&(dataAccepterConnexions.thread),NULL,accepter_connexions_tcp,
     (void *) &dataAccepterConnexions);
     
     while(1){
-      sleep(1);
+      usleep(10000);
+      if(strcmp(EntreesUtilisateur,"")!=0){
+        pthread_mutex_lock(&dataThreadEntreesUtilisateur.mutex);
+        printf("Vous avez écrit : %s\n",EntreesUtilisateur);
+        strcpy(EntreesUtilisateur,"");
+        pthread_mutex_unlock(&dataThreadEntreesUtilisateur.mutex);
+      }
     }
 
 
