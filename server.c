@@ -50,10 +50,10 @@ void * accepter_connexions_tcp(void * arg){
     while(1){
       SocketNouvelleConnexion_Temporaire = accept(*(SocketsEtAdresse->sock), (SOCKADDR *) SocketsEtAdresse->csin,&sinsize);
       if(SocketNouvelleConnexion_Temporaire == INVALID_SOCKET){
-        printf("Erreur socket entrante\n");
+        alerte("Erreur socket entrante\n");
         
       }else{
-        printf("Nouvelle connexion entrante !\n");
+        alerte("Nouvelle connexion entrante !\n");
         pthread_mutex_lock(&Donnees_Thread->mutex); //On bloque la mémoire aux autres threads avant écriture
         *(SocketsEtAdresse->sock_cible) = SocketNouvelleConnexion_Temporaire;
         printf("Socket : %d\n",SocketNouvelleConnexion_Temporaire);
@@ -84,13 +84,13 @@ void * entrees_utilisateur(void * arg){
         strcpy(EntreesUtilisateur,EntreesUtilisateurTemp);
         pthread_mutex_unlock(&Donnes_Thread->mutex);
       }else{
-        erreur("L'entrée est trop longue !");
+        alerte("L'entrée est trop longue !\n");
       }
       
 
     }else{
 
-      erreur("Erreur lors de la lecture de l'entrée.");
+      alerte("Erreur lors de la lecture de l'entrée.\n");
     }
   }
 }
@@ -133,7 +133,8 @@ int main(int argc, char * argv[]){
     while(1){
       usleep(CLOCK_US);//horloge
 
-      if(strcmp(EntreesUtilisateur,"")!=0){//Détection entrée utilisateur
+      // ============== Entrées utililsateur ==============
+      if(strcmp(EntreesUtilisateur,"")!=0){
         if(strcmp(EntreesUtilisateur,"quit")==0){
           exit(EXIT_SUCCESS);
         }
@@ -144,12 +145,14 @@ int main(int argc, char * argv[]){
         pthread_mutex_unlock(&dataThreadEntreesUtilisateur.mutex);
       }
 
+      // ============== Nouvelles connexions ==============
       if(socket_source_cible->sock_cible != NULL){//Nouvelle connexion
-        printf("Nouvelle connexion !");
+        alerte("Nouvelle connexion !\n");
         socket_source_cible->sock_cible = NULL;
       }
+
+      // ============== Connexions existantes ==============
+
     }
-
-
 
 }

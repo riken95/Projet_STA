@@ -60,7 +60,11 @@
   "files.associations": {
     "stdlib.h": "c",
     "string.h": "c",
-    "pthread.h": "c"
+    "pthread.h": "c",
+    "inet.h": "c",
+    "in.h": "c",
+    "unistd.h": "c",
+    "ncurses.h": "c"
   },
   "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }

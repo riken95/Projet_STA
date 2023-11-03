@@ -4,6 +4,7 @@
 #ifndef MISC_H
 #define MISC_H
 #define AFFICHER_ERREURS 1
+#define AFFICHER_ALERTES 1
 
 /**
  * @brief  Permet d'afficher les erreur
@@ -18,5 +19,10 @@ void erreur(char message[]){
     if(AFFICHER_ERREURS==1){
         printf("%s",message);
     }exit(-1);
+}
+void alerte(char message[]){
+    if(AFFICHER_ALERTES==1){
+        printf("%s",message);
+    }
 }
 #endif
