@@ -15,9 +15,8 @@ void initialiser_socket_connexions_tcp_entrantes(SOCKET * sock, SOCKADDR_IN * cs
     if (bind(*sock, (SOCKADDR*)csin, sizeof(*csin)) == SOCKET_ERROR) {
       perror("Erreur lors de la liaison du socket");
       exit(EXIT_FAILURE);
-    }else{
-      printf("Succès du bind !\n"); 
-    }
+    }else printf("Succès du bind !\n"); 
+    
     if(listen(*sock,MAX_CLIENTS)==SOCKET_ERROR){
       perror("listen()");
       exit(EXIT_FAILURE);
@@ -28,13 +27,13 @@ void initialiser_socket_connexions_tcp_entrantes(SOCKET * sock, SOCKADDR_IN * cs
 
 void lecture_arguments(int argc, char * argv[]){
 
-    if(argc>=2){
+    if(argc>=2)
         port = atoi(argv[1]);
-    }else{
+    else
         //erreur("Veuillez renseigner un port pour le serveur !\n");
         port = 20000;
         //exit(EXIT_FAILURE);
-    }
+    
 }
 
 void * accepter_connexions_tcp(void * arg){
@@ -49,10 +48,10 @@ void * accepter_connexions_tcp(void * arg){
     //Boucle principale
     while(1){
       SocketNouvelleConnexion_Temporaire = accept(*(SocketsEtAdresse->sock), (SOCKADDR *) SocketsEtAdresse->csin,&sinsize);
-      if(SocketNouvelleConnexion_Temporaire == INVALID_SOCKET){
+      if(SocketNouvelleConnexion_Temporaire == INVALID_SOCKET)
         alerte("Erreur socket entrante\n");
         
-      }else{
+      else{
         alerte("Nouvelle connexion entrante !\n");
         pthread_mutex_lock(&Donnees_Thread->mutex); //On bloque la mémoire aux autres threads avant écriture
         *(SocketsEtAdresse->sock_cible) = SocketNouvelleConnexion_Temporaire;
@@ -76,24 +75,25 @@ void * entrees_utilisateur(void * arg){
   char * EntreesUtilisateurTemp = NULL;
 
   ssize_t len = 0;
-  while(1){
-    if(getline(&EntreesUtilisateurTemp,&len,stdin) != -1){
-      if(len < MAX_BUFFER){
-        EntreesUtilisateurTemp[strcspn(EntreesUtilisateurTemp, "\n")] = '\0';
-        pthread_mutex_lock(&Donnes_Thread->mutex);
-        strcpy(EntreesUtilisateur,EntreesUtilisateurTemp);
-        pthread_mutex_unlock(&Donnes_Thread->mutex);
-      }else{
-        alerte("L'entrée est trop longue !\n");
-      }
-      
 
-    }else{
+  //Boucle principale
+  while(1)
 
-      alerte("Erreur lors de la lecture de l'entrée.\n");
-    }
-  }
+  if(getline(&EntreesUtilisateurTemp,&len,stdin) != -1)
+
+    if(len < MAX_BUFFER){
+
+      EntreesUtilisateurTemp[strcspn(EntreesUtilisateurTemp, "\n")] = '\0';
+      pthread_mutex_lock(&Donnes_Thread->mutex);
+      strcpy(EntreesUtilisateur,EntreesUtilisateurTemp);
+      pthread_mutex_unlock(&Donnes_Thread->mutex);
+
+    }else alerte("L'entrée est trop longue !\n");
+    
+  else alerte("Erreur lors de la lecture de l'entrée.\n");
+
 }
+
 
 int main(int argc, char * argv[]){
 
@@ -135,9 +135,9 @@ int main(int argc, char * argv[]){
 
       // ============== Entrées utililsateur ==============
       if(strcmp(EntreesUtilisateur,"")!=0){
-        if(strcmp(EntreesUtilisateur,"quit")==0){
+        if(strcmp(EntreesUtilisateur,"quit")==0)
           exit(EXIT_SUCCESS);
-        }
+        
 
         pthread_mutex_lock(&dataThreadEntreesUtilisateur.mutex);
         printf("Vous avez écrit : %s\n",EntreesUtilisateur);

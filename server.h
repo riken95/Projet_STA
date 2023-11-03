@@ -15,19 +15,23 @@
 //Librairies en plus
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
 
 //Importation des headers
 #include "misc.h"
 
+#ifndef SERVER_H
+#define SERVER_H
 // ====================== CONSTANTES ET VARIABLES GLOBALES ======================
 
 //Constantes utiles pour le code
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(s) close(s)
-#define MAX_BUFFER 256
-#define MAX_CLIENTS 32
-#define CLOCK_US 1000*10
+#define MAX_BUFFER 256          //Taille du buffer de communication
+#define MAX_CLIENTS 32          //Nombre maximum de clients simultanés
+#define CLOCK_US 1000*10        //Temps d'attente en microsecondes avant une nouvelle itération de la boucle principale
 
 //Port d'écoute du serveur
 int port;
@@ -183,3 +187,4 @@ void * affichage(void * arg);
 */
 int main(int argc, char * argv[]);
 
+#endif
