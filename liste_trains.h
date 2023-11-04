@@ -4,6 +4,8 @@
 #define MAX_TRAINS_LISTE MAX_CLIENTS         //Nombre maximum de trains dans la liste
 #include "server.h"
 
+// ======================== DEFINITION STRUCTURES ========================
+
 struct Train{
     double positionX, positionY, velocite, distanceSecurite;
     bool estActif;
@@ -13,6 +15,15 @@ struct Train{
 
 typedef struct Train Train;
 
+/**
+ * @brief  Permet de communiquer entre le main et le thread de communication du train
+ * @note   
+ *
+*/
+struct Train_Communication_Messages{
+    char InfosMain[MAX_BUFFER];
+    char InfosThread[MAX_BUFFER];
+};
 
 // ======================== FONCTIONS TRAINS ========================
 
@@ -36,6 +47,28 @@ Train * Train_Initialiser(char * NomTrain);
 void Train_Free(Train * Train);
 
 double Train_distanceEuclidienne(Train * Train1, Train * Train2);
+
+/**
+ * @brief  Envoie un message au thread pour qu'il l'envoie au train
+ * @note   Envoie depuis le main vers le thread
+ * @param  Train: Pointeur vers le train
+ * @param  message[]: Message à envoyer
+ * @param  forcer_message: si est true, écrase un potentiel message en attente. Sinon, 
+ * * la fonction ne fait rien s'il y a déjà un message en attente d'être envoyé
+ * @retval true si le message a été écrit, false sinon
+ *
+*/
+bool Train_envoyer_message(Train * Train, char message[], bool forcer_message);
+
+/**
+ * @brief  Vérifie s'il y a un nouveau message reçu. Si tel est le cas, le copie dans la variable dest
+ * @note   Nettoie le message en attente une fois lu
+ * @param  dest: Chaine de caractère où enregistrer le message
+ * @param  Train: Pointeur vers le train
+ * @retval True s'il y a un message non vide copié. False sinon
+ *
+*/
+bool Train_recevoir_message(char * dest, Train * Train);
 
 // ======================== FONCTIONS LISTE_TRAINS ========================
 

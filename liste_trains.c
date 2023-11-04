@@ -3,20 +3,23 @@
 Train * Train_Initialiser(char * NomTrain){
     Train * NouveauTrain = (Train *) malloc(sizeof(Train));
 
-    NouveauTrain->DonneesThread = NULL;
+    NouveauTrain->DonneesThread = (ThreadData*) malloc((sizeof(ThreadData)));
+    struct Train_Communication_Messages * Donnees = 
+    (struct Train_Communication_Messages *) malloc(sizeof(struct Train_Communication_Messages));
+    NouveauTrain->DonneesThread->shared_data = Donnees;
     NouveauTrain->estActif = false;
     strcpy(NouveauTrain->nom,NomTrain);
 
-    NouveauTrain->velocite,
-    NouveauTrain->distanceSecurite,
-    NouveauTrain->positionX,
-    NouveauTrain->positionY 
-    = 0.0;
+
+    NouveauTrain->velocite,     NouveauTrain->distanceSecurite,
+    NouveauTrain->positionX,    NouveauTrain->positionY 
+        = 0.0;
 
     return NouveauTrain;
 }
 
 void Train_Free(Train * Train){
+    free(Train->DonneesThread->shared_data);
     free(Train->DonneesThread);
     free(Train);
 }
@@ -63,4 +66,37 @@ void Train_Liste_Calculer_Distances_Securite(Train * * liste){
         (liste[i]->distanceSecurite>distance)? liste[i]->distanceSecurite=distance: 0;
         (liste[j]->distanceSecurite>distance)? liste[j]->distanceSecurite=distance: 0;
     }
+}
+
+bool Train_envoyer_message(Train * Train, char message[], bool forcer_message){
+    if(!Train) return false;
+
+    pthread_mutex_lock(&Train->DonneesThread->mutex);
+    char * message_actuel = ((struct Train_Communication_Messages *)Train->DonneesThread->shared_data)->InfosMain;
+    
+    //Si le message est déjà plein, renvoie false
+    if(!forcer_message && strcmp(message_actuel,"")!=0)
+        return false;
+    
+    strcpy(message_actuel,message);
+    pthread_mutex_unlock(&Train->DonneesThread->mutex);
+    return true;
+}
+
+bool Train_recevoir_message(char * dest, Train * Train){
+    if(!Train) return false;
+
+    pthread_mutex_lock(&Train->DonneesThread->mutex);
+    char * message_actuel = ((struct Train_Communication_Messages *)Train->DonneesThread->shared_data)->InfosThread;
+    
+    if(strcmp(message_actuel,"")==0){
+        pthread_mutex_unlock(&Train->DonneesThread->mutex);
+        return false;
+    }
+    strcpy(dest, message_actuel);
+
+    strcpy(message_actuel,"");//On vide le message une fois lu
+    pthread_mutex_unlock(&Train->DonneesThread->mutex);
+
+    return true;
 }

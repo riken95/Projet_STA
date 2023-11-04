@@ -15,7 +15,8 @@ void initialiser_socket_connexions_tcp_entrantes(SOCKET * sock, SOCKADDR_IN * cs
     if (bind(*sock, (SOCKADDR*)csin, sizeof(*csin)) == SOCKET_ERROR) {
       perror("Erreur lors de la liaison du socket");
       exit(EXIT_FAILURE);
-    }else printf("Succès du bind !\n"); 
+    }
+    printf("Succès du bind !\n"); 
     
     if(listen(*sock,MAX_CLIENTS)==SOCKET_ERROR){
       perror("listen()");
@@ -26,14 +27,10 @@ void initialiser_socket_connexions_tcp_entrantes(SOCKET * sock, SOCKADDR_IN * cs
 }
 
 void lecture_arguments(int argc, char * argv[]){
-
-    if(argc>=2)
-        port = atoi(argv[1]);
-    else
-        //erreur("Veuillez renseigner un port pour le serveur !\n");
-        port = 20000;
-        //exit(EXIT_FAILURE);
-    
+    if(argc<2)
+      erreur("Veuillez renseigner un port pour le serveur !\n");
+      
+    port = atoi(argv[1]);
 }
 
 void * accepter_connexions_tcp(void * arg){
@@ -48,9 +45,8 @@ void * accepter_connexions_tcp(void * arg){
     //Boucle principale
     while(1){
       SocketNouvelleConnexion_Temporaire = accept(*(SocketsEtAdresse->sock), (SOCKADDR *) SocketsEtAdresse->csin,&sinsize);
-      if(SocketNouvelleConnexion_Temporaire == INVALID_SOCKET)
-        alerte("Erreur socket entrante\n");
-        
+      
+      if(SocketNouvelleConnexion_Temporaire == INVALID_SOCKET) alerte("Erreur socket entrante\n");
       else{
         alerte("Nouvelle connexion entrante !\n");
         pthread_mutex_lock(&Donnees_Thread->mutex); //On bloque la mémoire aux autres threads avant écriture
@@ -58,7 +54,6 @@ void * accepter_connexions_tcp(void * arg){
         printf("Socket : %d\n",SocketNouvelleConnexion_Temporaire);
         pthread_mutex_unlock(&Donnees_Thread->mutex);
       }
-      
     }
     
 }

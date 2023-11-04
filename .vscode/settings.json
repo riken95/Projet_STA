@@ -65,7 +65,8 @@
     "in.h": "c",
     "unistd.h": "c",
     "ncurses.h": "c",
-    "stdbool.h": "c"
+    "stdbool.h": "c",
+    "server.h": "c"
   },
   "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }
