@@ -1,3 +1,4 @@
+#pragma once
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -15,14 +16,7 @@
  * @retval None
  *
 */
-void erreur(char message[]){
-    if(AFFICHER_ERREURS==1)
-        printf("%s",message);
-    exit(-1);
-}
-void alerte(char message[]){
-    if(AFFICHER_ALERTES==1)
-        printf("%s",message);
-    
-}
+void erreur(char message[]);
+
+void alerte(char message[]);
 #endif

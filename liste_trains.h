@@ -3,6 +3,7 @@
 #define MAX_TAILLE_NOM_TRAIN 30              //Taille maximale du nom d'un train
 #define MAX_TRAINS_LISTE MAX_CLIENTS         //Nombre maximum de trains dans la liste
 #include "server.h"
+#include <math.h>
 
 // ======================== DEFINITION STRUCTURES ========================
 
@@ -80,7 +81,7 @@ bool Train_recevoir_message(char * dest, Train * Train);
  *         Le tableau a une taille de MAX_TRAINS_LISTE
  *
 */
-Train * Train_Liste_Initialiser();
+Train * * Train_Liste_Initialiser();
 
 void Train_Liste_Free(Train * * liste);
 

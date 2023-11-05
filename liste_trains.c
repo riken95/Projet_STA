@@ -30,7 +30,7 @@ double Train_distanceEuclidienne(Train * Train1, Train * Train2){
     return sqrt(pow(Train1->positionX-Train2->positionX,2)+pow(Train1->positionY-Train2->positionY,2));
 }
 
-Train * Train_Liste_Initialiser(){
+Train * * Train_Liste_Initialiser(){
     return (Train * *) malloc(sizeof(Train *)*MAX_TRAINS_LISTE);
 }
 

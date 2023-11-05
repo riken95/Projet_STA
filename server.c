@@ -1,5 +1,19 @@
 #include "server.h"
 
+//Port d'écoute du serveur
+int port;
+
+struct ArgConnexionsEntrantes * initArgConnexionsEntrantes()
+{
+    struct ArgConnexionsEntrantes * arg = (struct ArgConnexionsEntrantes *) malloc(sizeof(struct ArgConnexionsEntrantes));
+    arg->csin = (SOCKADDR_IN *) malloc(sizeof(SOCKADDR_IN));
+    arg->sock = (SOCKET *) malloc(sizeof(SOCKET));
+    
+    //On l'initialise à NULL pour indiquer qu'il n'y a pas de nouvelle connexion entrante
+    arg->sock_cible = NULL;
+    //arg->sock_cible = (SOCKET *) malloc(sizeof(SOCKET));
+    return arg;
+}
 
 void initialiser_socket_connexions_tcp_entrantes(SOCKET * sock, SOCKADDR_IN * csin){
 

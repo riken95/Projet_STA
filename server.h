@@ -33,8 +33,7 @@
 #define MAX_CLIENTS 32          //Nombre maximum de clients simultanés
 #define CLOCK_US 1000*10        //Temps d'attente en microsecondes avant une nouvelle itération de la boucle principale
 
-//Port d'écoute du serveur
-int port;
+
 
 
 // ====================== Définition des structures ======================
@@ -68,16 +67,7 @@ struct ArgConnexionsEntrantes{
     SOCKET * sock;
     SOCKET * sock_cible;
 };
-struct ArgConnexionsEntrantes * initArgConnexionsEntrantes(){
-    struct ArgConnexionsEntrantes * arg = (struct ArgConnexionsEntrantes *) malloc(sizeof(struct ArgConnexionsEntrantes));
-    arg->csin = (SOCKADDR_IN *) malloc(sizeof(SOCKADDR_IN));
-    arg->sock = (SOCKET *) malloc(sizeof(SOCKET));
-    
-    //On l'initialise à NULL pour indiquer qu'il n'y a pas de nouvelle connexion entrante
-    arg->sock_cible = NULL;
-    //arg->sock_cible = (SOCKET *) malloc(sizeof(SOCKET));
-    return arg;
-}
+struct ArgConnexionsEntrantes * initArgConnexionsEntrantes();
 
 /**
  * @brief  Définit une structure qui contient toutes les variables utiles

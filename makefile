@@ -1,5 +1,5 @@
 #Fichiers
-FILES_SERVEUR = server.c
+FILES_SERVEUR = misc.c server.c liste_trains.c
 FILES_MAIN = main.c
 
 #Exécutables
@@ -7,7 +7,7 @@ EXECUTABLE_SERVEUR = server
 EXECUTABLE_MAIN = main
 
 
-ENDFLAGS = -lm -lncurses
+ENDFLAGS = -lncurses -lm
 CC = gcc
 
 
@@ -22,7 +22,7 @@ main_exec:
 	./$(EXECUTABLE_MAIN)
 
 server:
-	$(CC) $(FILES_SERVEUR) -o $(EXECUTABLE_SERVEUR) $(ENDFLAGS)
+	$(CC) $(FILES_SERVEUR) -o $(EXECUTABLE_SERVEUR) $(ENDFLAGS) 
 
 server_exec:
 	./$(EXECUTABLE_SERVEUR)
