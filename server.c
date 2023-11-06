@@ -213,7 +213,7 @@ int main(int argc, char * argv[]){
         struct ArgCommunication * comm = malloc(sizeof(struct ArgCommunication));
         Train * NouveauTrain = Train_Initialiser("Nouveau train");
         comm->train = NouveauTrain;
-        comm->socket = socket_source_cible->sock_cible;
+        comm->socket = *socket_source_cible->sock_cible;
         int n_train = Train_Liste_Ajouter_Train(listeClients,NouveauTrain);
         comm->n_train = n_train;
         socket_source_cible->sock_cible = NULL;

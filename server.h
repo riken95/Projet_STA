@@ -94,7 +94,7 @@ struct ArgConnexionsEntrantes{
 struct ArgConnexionsEntrantes * initArgConnexionsEntrantes();
 
 struct ArgCommunication{
-    Train * train;
+    struct Train * train;
     SOCKET socket;
     int n_train;
 };
