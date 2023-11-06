@@ -15,7 +15,8 @@ struct ArgConnexionsEntrantes * initArgConnexionsEntrantes()
     return arg;
 }
 
-void initialiser_socket_connexions_tcp_entrantes(SOCKET * sock, SOCKADDR_IN * csin){
+void initialiser_socket_connexions_tcp_entrantes(SOCKET * sock, SOCKADDR_IN * csin)
+{
 
     //Initialisation de l'adresse d'écoute
     socklen_t sinsize = sizeof(*csin);
@@ -37,10 +38,10 @@ void initialiser_socket_connexions_tcp_entrantes(SOCKET * sock, SOCKADDR_IN * cs
       exit(EXIT_FAILURE);
     }
 
-
 }
 
-void lecture_arguments(int argc, char * argv[]){
+void lecture_arguments(int argc, char * argv[])
+{
     if(argc<2)
       erreur("Veuillez renseigner un port pour le serveur !\n");
       
@@ -69,7 +70,55 @@ void * accepter_connexions_tcp(void * arg){
         pthread_mutex_unlock(&Donnees_Thread->mutex);
       }
     }
+    return NULL;
+}
+
+void * communication_tcp(void * arg){
+  struct ArgCommunication * client = (struct ArgCommunication *) arg;
+  Train * train = client->train;
+  SOCKET socket = client->socket;
+  int n_train = client->n_train;
+  struct timeval timeout;
+  timeout.tv_sec = 5; // Attendez 5 secondes au maximum
+  timeout.tv_usec = 0;
+  fd_set read_fds;
+  FD_ZERO(&read_fds);
+  FD_SET(socket, &read_fds);
+  struct CommunicationTrain position;
+  while(1){
     
+    // Utilisation de select pour vérifier la connexion
+    int ready = select(socket + 1, &read_fds, NULL, NULL, &timeout);
+    pthread_mutex_lock(&train->DonneesThread->mutex);
+    if (ready == -1) {
+        perror("Erreur lors de l'utilisation de select");
+        close(socket);
+        Train_Free(train);
+        free(client);
+        exit(EXIT_FAILURE);
+    } else if (ready == 0) {
+        printf("La connexion a expiré ou n'est pas disponible.\n");
+        close(socket);
+        Train_Free(train);
+        free(client);
+        exit(EXIT_SUCCESS);
+    } else {
+        printf("La connexion est toujours active.\n");
+        // Vous pouvez effectuer des opérations de lecture/écriture ici si la connexion est active.
+        read(socket,&position,sizeof(position));
+        train->positionX = position.x;
+        train->positionY = position.y;
+        train->velocite = position.vitesse;
+        printf("Position client : %d, %d, %f",position.x,position.y,position.vitesse);
+
+    }
+    struct CommunicationVersTrain * communication_train = malloc(sizeof(struct CommunicationVersTrain));
+    communication_train->code_erreur = -1;
+    communication_train->distance_a_parcourir=train->distanceSecurite;
+    communication_train->vitesse_consigne = train->velocite;
+    write(socket,&communication_train,sizeof(communication_train));
+    pthread_mutex_unlock(&train->DonneesThread->mutex);
+  }
 }
 
 void * entrees_utilisateur(void * arg){
@@ -138,30 +187,55 @@ int main(int argc, char * argv[]){
     (void *) &dataAccepterConnexions);
     
 
+    Train * * listeClients = Train_Liste_Initialiser();
+
     //Boucle principale du main
     while(1){
       usleep(CLOCK_US);//horloge
 
       // ============== Entrées utililsateur ==============
-      if(strcmp(EntreesUtilisateur,"")!=0){
-        if(strcmp(EntreesUtilisateur,"quit")==0)
+      pthread_mutex_lock(&dataThreadEntreesUtilisateur.mutex);
+      if(strcmp(EntreesUtilisateur,"")){
+        if(!strcmp(EntreesUtilisateur,"quit"))
           exit(EXIT_SUCCESS);
         
 
-        pthread_mutex_lock(&dataThreadEntreesUtilisateur.mutex);
         printf("Vous avez écrit : %s\n",EntreesUtilisateur);
         strcpy(EntreesUtilisateur,"");//Réinitialisation de la chaine de caractères
-        pthread_mutex_unlock(&dataThreadEntreesUtilisateur.mutex);
       }
+      pthread_mutex_unlock(&dataThreadEntreesUtilisateur.mutex);
+
 
       // ============== Nouvelles connexions ==============
+      pthread_mutex_lock(&dataAccepterConnexions.mutex);
       if(socket_source_cible->sock_cible != NULL){//Nouvelle connexion
         alerte("Nouvelle connexion !\n");
+        struct ArgCommunication * comm = malloc(sizeof(struct ArgCommunication));
+        Train * NouveauTrain = Train_Initialiser("Nouveau train");
+        comm->train = NouveauTrain;
+        comm->socket = socket_source_cible->sock_cible;
+        int n_train = Train_Liste_Ajouter_Train(listeClients,NouveauTrain);
+        comm->n_train = n_train;
         socket_source_cible->sock_cible = NULL;
       }
+      pthread_mutex_unlock(&dataAccepterConnexions.mutex);
+
 
       // ============== Connexions existantes ==============
+      Train_Liste_Calculer_Distances_Securite(listeClients);
 
+      for(int i=0; i<MAX_TRAINS_LISTE;i++)
+
+      //On vérifie que le client est non vide
+      if(listeClients[i]){
+        pthread_mutex_lock(&listeClients[i]->DonneesThread->mutex);
+        struct Train_Communication_Messages * com;
+        com = listeClients[i]->DonneesThread->shared_data;
+
+        pthread_mutex_unlock(&listeClients[i]->DonneesThread->mutex);
+        
+      }
+      
     }
 
 }

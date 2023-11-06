@@ -1,5 +1,7 @@
 #include "liste_trains.h"
 
+
+
 Train * Train_Initialiser(char * NomTrain){
     Train * NouveauTrain = (Train *) malloc(sizeof(Train));
 
@@ -38,16 +40,16 @@ void Train_Liste_Free(Train * * liste){
     free(liste);
 }
 
-bool Train_Liste_Ajouter_Train(Train * * liste, Train * train){
-    if(!liste) return false;
+int Train_Liste_Ajouter_Train(Train * * liste, Train * train){
+    if(!liste) return -1;
 
     for(int i=0;i<MAX_TRAINS_LISTE;i++)
     if(liste[i]){
         liste[i] = train;
-        return true;
+        return i;
     }
 
-    return false;
+    return -1;
 }
 
 Train * Train_Liste_Retirer_Train(Train * * liste, int i){
@@ -62,9 +64,11 @@ void Train_Liste_Calculer_Distances_Securite(Train * * liste){
     for (int i=0;    i<MAX_TRAINS_LISTE-1;   i++)
     for (int j=i+1;  j<MAX_TAILLE_NOM_TRAIN; j++)
     if  (liste[i] && liste[j]){
+        pthread_mutex_lock(&liste[i]->DonneesThread->mutex);
         double distance = Train_distanceEuclidienne(liste[i],liste[j]);
         (liste[i]->distanceSecurite>distance)? liste[i]->distanceSecurite=distance: 0;
         (liste[j]->distanceSecurite>distance)? liste[j]->distanceSecurite=distance: 0;
+        pthread_mutex_lock(&liste[i]->DonneesThread->mutex);
     }
 }
 
@@ -89,7 +93,7 @@ bool Train_recevoir_message(char * dest, Train * Train){
     pthread_mutex_lock(&Train->DonneesThread->mutex);
     char * message_actuel = ((struct Train_Communication_Messages *)Train->DonneesThread->shared_data)->InfosThread;
     
-    if(strcmp(message_actuel,"")==0){
+    if(!strcmp(message_actuel,"")){
         pthread_mutex_unlock(&Train->DonneesThread->mutex);
         return false;
     }

@@ -85,7 +85,7 @@ Train * * Train_Liste_Initialiser();
 
 void Train_Liste_Free(Train * * liste);
 
-bool Train_Liste_Ajouter_Train(Train * * liste, Train * train);
+int Train_Liste_Ajouter_Train(Train * * liste, Train * train);
 
 Train * Train_Liste_Retirer_Train(Train * * liste, int i);
 

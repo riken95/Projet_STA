@@ -17,9 +17,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <signal.h>
+#include <sys/time.h>
 
 //Importation des headers
 #include "misc.h"
+#include "liste_trains.h"
 
 #ifndef SERVER_H
 #define SERVER_H
@@ -55,7 +58,28 @@ struct ThreadData{
 };
 typedef struct ThreadData ThreadData;
 
+/**
+ * @brief  Recu depuis le train vers le serveur
+ * @note   
+ *
+*/
+struct CommunicationTrain{
+    int x;
+    int y;
+    float vitesse;
+    int code_erreur;
+};
 
+/**
+ * @brief  Recu depuis le serveur vers le train
+ * @note   
+ *
+*/
+struct CommunicationVersTrain{
+    float distance_a_parcourir;
+    float vitesse_consigne;
+    int code_erreur;
+};
 
 /**
  * @brief  Utile à la fonction accepter_connexions_tcp
@@ -69,19 +93,11 @@ struct ArgConnexionsEntrantes{
 };
 struct ArgConnexionsEntrantes * initArgConnexionsEntrantes();
 
-/**
- * @brief  Définit une structure qui contient toutes les variables utiles
- *         pour gérer un train.
- * @note   Il faut y mettre:
- *          → le socket de la connexion
- *          → la position / vitesse du train
- *          → les pointeurs de communication avec le programme principal
- *              → Un pointeur du programme principal vers le Train
- *              → Un pointeur du train vers le programme principal
- *          → les pipe_fd pour les mutex_lock
- */
-struct Train;
-
+struct ArgCommunication{
+    Train * train;
+    SOCKET socket;
+    int n_train;
+};
 
 // ====================== Définition des fonctions ======================
 
