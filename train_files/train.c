@@ -11,19 +11,40 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <string.h>
-
 #include "marvelmind.h"
-
 #include "Libs_Unirail/CAN/canLinux.h"
 #include "Libs_Unirail/CAN/loco_Parametres.h"
 
+/**
+ * @brief  Recu depuis le train vers le serveur
+ * @note   
+ *
+*/
+struct CommunicationVersServeur{
+    int x;
+    int y;
+    float vitesse;
+    int code_erreur;
+};
 
+/**
+ * @brief  Recu depuis le serveur vers le train
+ * @note   
+ *
+*/
+struct CommunicationRecueServeur{
+    float distance_a_parcourir;
+    float vitesse_consigne;
+    int code_erreur;
+};
 
+///////////////////////////////////////////////////////////////////////
+// Code Exemple
+///////////////////////////////////////////////////////////////////////
 //#define DISTANCE_PARCOURS 50 // Avance max d'un train pour le test
 
 //Definition d'un type train data
-typedef struct TrainInfo
-{
+typedef struct TrainInfo{
 	float distance;  // en cm
 	float vit_consigne;
 	int vit_mesuree;
@@ -32,15 +53,15 @@ typedef struct TrainInfo
 
 unsigned char status, varDebug1, varDebug2;
 
+
 //////////////////////////////////////////
 /// Ecriture de la Trame vitesse limite
 ///////////////////////////////////////////
-int WriteVitesseLimite(float vitesseLimite)
-{
+int WriteVitesseLimite(float vitesseLimite){
 
 	uCAN1_MSG consigneUrgence;
 	
-	if(vitesseLimite > MAX_CONSIGNE_VITESSE_AUTORISEE) //vitesse sup�rieur � 50 cm/s
+	if(vitesseLimite > MAX_CONSIGNE_VITESSE_AUTORISEE) //vitesse supérieure ~ 50 cm/s
 	vitesseLimite = MAX_CONSIGNE_VITESSE_AUTORISEE;                   
 	
 	consigneUrgence.frame.id  = MC_ID_CONSIGNE_VITESSE_LIMITE;
@@ -53,12 +74,11 @@ int WriteVitesseLimite(float vitesseLimite)
 //////////////////////////////////////////
 /// Ecriture de la Trame Consigne
 ///////////////////////////////////////////
-int WriteVitesseConsigne(unsigned int vitesse, unsigned char sense)
-{
+int WriteVitesseConsigne(unsigned int vitesse, unsigned char sense){
 	
 	uCAN1_MSG consigneVitesse;
 
-	if(vitesse>MAX_CONSIGNE_VITESSE_AUTORISEE) //vitesse sup�rieur � 50 cm/s
+	if(vitesse>MAX_CONSIGNE_VITESSE_AUTORISEE) //vitesse supérieur ~ 50 cm/s
 		vitesse = MAX_CONSIGNE_VITESSE_AUTORISEE;
 	
 	consigneVitesse.frame.id  = MC_ID_CONSIGNE_VITESSE;
@@ -73,8 +93,7 @@ int WriteVitesseConsigne(unsigned int vitesse, unsigned char sense)
 //////////////////////////////////////////
 /// Envoi de la trame status de RPI1
 ///////////////////////////////////////////
-int  WriteTrameStatusRUNRP1(unsigned char status, unsigned char varDebug1, unsigned char varDebug2)
-{
+int  WriteTrameStatusRUNRP1(unsigned char status, unsigned char varDebug1, unsigned char varDebug2){
 	uCAN1_MSG trameStatusRP1;
 	trameStatusRP1.frame.id  = MC_ID_RP1_STATUS_RUN;
 	trameStatusRP1.frame.dlc = MC_DLC_RP1_STATUS_RUN;
@@ -91,18 +110,17 @@ int  WriteTrameStatusRUNRP1(unsigned char status, unsigned char varDebug1, unsig
 //////////////////////////////////////////
 /// Traitement d'une trame CAN
 ///////////////////////////////////////////
-void TraitementDonnee (uCAN1_MSG *recCanMsg, TrainInfo *infos)
-{
+void TraitementDonnee (uCAN1_MSG *recCanMsg, TrainInfo *infos){
 	
 		
     if (recCanMsg->frame.id==MC_ID_SCHEDULEUR_MESURES)
     {
-		/** Envoi la vitesse instantann�e (consigne vitesse) ,	le nombre d�impulsions, la vitesse mesur�e, l�erreur du PID **/
+		/** Envoi la vitesse instantann�e (consigne vitesse) ,	le nombre d'impulsions, la vitesse mesurée, l'erreur du PID **/
 
 		if(MESCAN_GetData8(recCanMsg, cdmc_ordonnancementId)==MC_ID_RP1_STATUS_RUN)
 			WriteTrameStatusRUNRP1(status, varDebug1, varDebug2);
 			
-        infos-> vit_mesuree= (int)MESCAN_GetData8(recCanMsg, cdmc_vitesseMesuree);/** le nbre d'implusion envoy� ici
+        infos-> vit_mesuree= (int)MESCAN_GetData8(recCanMsg, cdmc_vitesseMesuree);/** le nbre d'implusion envoyé ici
 		// est le nombre d'impulsion entre 2 mesures **/
 		infos-> nb_impulsions+= infos-> vit_mesuree;
         infos-> distance= PAS_ROUE_CODEUSE * (infos->nb_impulsions);
@@ -113,7 +131,9 @@ void TraitementDonnee (uCAN1_MSG *recCanMsg, TrainInfo *infos)
 		printf("La trame lue a pour ID %X \n",recCanMsg->frame.id);
 }
 
-
+///////////////////////////////////////////////////////////////////////
+// Code Exemple
+///////////////////////////////////////////////////////////////////////
 
 /**
  * @brief  Enregistre la position du marvel mind
@@ -122,6 +142,8 @@ void TraitementDonnee (uCAN1_MSG *recCanMsg, TrainInfo *infos)
 */
 struct PositionValue position = {0};
 
+struct CommunicationVersServeur comServ = {0};
+struct CommunicationRecueServeur comr ecuServ = {0};
 /**
  * @brief  Détermine si oui ou non la variable position a été actualisée
  * @note   variable globale
@@ -130,6 +152,12 @@ struct PositionValue position = {0};
 bool ecriture_update = false;
 //détermine quand il faut terminer le programme
 bool terminateProgram=false;
+/**
+ * @brief  Détermine si oui ou non les consigne envoyer par le serveur ont été actualisée
+ * @note   variable globale
+ *
+*/
+bool consigne_update = false;
 
 //port du serveur (connexion TCP)
 int port = 0;
@@ -139,8 +167,8 @@ char adresse[20] = "127.0.0.1";
  * @note   variable globale
  *
 */
-pthread_mutex_t mutex_lock_communication;
-
+pthread_mutex_t mutex_lock_communication_vers_serveur;
+pthread_mutex_t mutex_lock_communication_depuis_serveur;
 /**
  * @brief  Fonction définie dans la doc du marvel mind qui arrête le programme
  * @note   
@@ -148,8 +176,7 @@ pthread_mutex_t mutex_lock_communication;
  * @retval None
  *
 */
-void CtrlHandler(int signum)
-{
+void CtrlHandler(int signum){
     terminateProgram=true;
 }
 
@@ -164,8 +191,7 @@ struct timespec ts;
  * @retval None
  *
 */
-void semCallback()
-{
+void semCallback(){
 	sem_post(sem);
 }
 
@@ -180,38 +206,35 @@ void semCallback()
 */
 bool get_position(struct MarvelmindHedge * hedge){
     //blocage du mutex
-    pthread_mutex_lock(&mutex_lock_communication);
-
-    
+    pthread_mutex_lock(&mutex_lock_communication_vers_serveur);
     if(getPositionFromMarvelmindHedge (hedge, &position)){//Si la position du marvel
-                                                          // mind est indentifiée
+// mind est indentifiée       
+//indique au thread de l'envoie de messages qu'il y a une position à envoyer
+      ecriture_update = true;
 
-        
-        //indique au thread de l'envoie de messages qu'il y a une position à envoyer
-        ecriture_update = true;
-        //Affiche la position à l'écran
-        //printf("Nouvelle position :\nX: %d, Y: %d,Z: %d\n\n",position.x,position.y,position.z);
-        pthread_mutex_unlock(&mutex_lock_communication);
-        return true;
+      comServ.x = position.x;
+      comServ.y = position.y;
+      
+      pthread_mutex_unlock(&mutex_lock_communication_vers_serveur);
+      return true;
     }
-    pthread_mutex_unlock(&mutex_lock_communication);
+    pthread_mutex_unlock(&mutex_lock_communication_vers_serveur);
     //Sinon, affiche un message d'erreur
     printf("Erreur lors de l'acquisition de la position !\n");
     return false;
 }
 
 void * reception_message(void * p_client_socket){
-    int client_socket = *((int *) p_client_socket);
-    char buffer[1024];
-    while(1){
-        int bytes_received = read(client_socket, buffer, sizeof(buffer));
-        // Traitement les données reçues
-        printf("Message recu : %s\n",buffer);
-        memset(buffer,0,strlen(buffer));
+  int client_socket = *((int *) p_client_socket);
+  while(1){
+    int bytes_received = read(client_socket, &comrecuServ, sizeof(comrecuServ));
+    if(bytes_received == -1){
+      perror("Erreur lors de l'envoie des donnée");
+      exit(EXIT_FAILURE);
     }
     
-    return NULL;
-
+  }
+  return NULL;
 }
 
 
@@ -225,23 +248,23 @@ void * reception_message(void * p_client_socket){
 */
 void handler_envoie_message(int client_socket){
     //blocage du mutex
-    pthread_mutex_lock(&mutex_lock_communication);
+    pthread_mutex_lock(&mutex_lock_communication_vers_serveur);
     if(ecriture_update){//si la position a été actualisée
 
         
         //envoie des données
-        write(client_socket,&position,sizeof(position));
+        write(client_socket,&comServ,sizeof(comServ));
 
         
         //spécification que l'info a été envoyée
         ecriture_update = false;
         //déblocage du mutex
-        pthread_mutex_unlock(&mutex_lock_communication);
+        pthread_mutex_unlock(&mutex_lock_communication_vers_serveur);
 
         return;
     }
     //déblocage du mutex
-    pthread_mutex_unlock(&mutex_lock_communication);
+    pthread_mutex_unlock(&mutex_lock_communication_vers_serveur);
     return;
 }
 
@@ -278,7 +301,7 @@ void * communiquer(void * arg){
         exit(EXIT_FAILURE);
     }
     printf("Succès de la connexion !\n");
-    pthread_t threadReception;
+    pthread_t threadReception; 
     int socket_thread_communication = client_socket;
     pthread_create(&threadReception,NULL,reception_message,(void *) &client_socket);
     
@@ -295,115 +318,115 @@ void * communiquer(void * arg){
 
 
 void handler_pause(){
-
 }
 
 
-int main (int argc, char *argv[])
-{
-    // get port name from command line arguments (if specified)
-    const char * ttyFileName;
-    if (argc >= 2) ttyFileName = argv[1];
-    else ttyFileName = DEFAULT_TTY_FILENAME;
+int main (int argc, char *argv[]){
+  // get port name from command line arguments (if specified)
+  const char * ttyFileName;
+  if (argc >= 2) ttyFileName = argv[1];
+  else ttyFileName = DEFAULT_TTY_FILENAME;
 
-    //lecture de l'argument du port
-    if(argc >= 3)port = atoi(argv[2]);
-    else{
-        printf("Aucun port spécifié (2e position en argument !\n)");
-    }
-    //lecture de l'adresse:
-    if(argc >= 4)
-    strcpy(adresse,argv[3]);
-    // Init
+  //lecture de l'argument du port
+  if(argc >= 3)port = atoi(argv[2]);
+  else{
+      printf("Aucun port spécifié (2e position en argument !\n)");
+  }
+  //lecture de l'adresse:
+  if(argc >= 4)
+  strcpy(adresse,argv[3]);
+  // Initialisation
 
-    //Variable du marvel mind
-    struct MarvelmindHedge * hedge=createMarvelmindHedge();
-    if (hedge==NULL)
-    {
-        puts ("Error: Unable to create MarvelmindHedge");
-        return -1;
-    }
-    hedge->ttyFileName=ttyFileName;
-    hedge->verbose=true; // show errors and warnings
-    hedge->anyInputPacketCallback= semCallback;
-    startMarvelmindHedge (hedge);
+  //Variable du marvel mind
+  struct MarvelmindHedge * hedge=createMarvelmindHedge();
+  if (hedge==NULL){
+    puts ("Error: Unable to create MarvelmindHedge");
+    return -1;
+  }
+  hedge->ttyFileName=ttyFileName;
+  hedge->verbose=true; // show errors and warnings
+  hedge->anyInputPacketCallback= semCallback;
+  startMarvelmindHedge (hedge);
 
-    // Set Ctrl-C handlergnome-terminal
-
-    //signal (SIGINT, CtrlHandler);
-    //signal (SIGQUIT, CtrlHandler);
+  // Set Ctrl-C handlergnome-terminal
+  
+  //signal (SIGINT, CtrlHandler);
+  //signal (SIGQUIT, CtrlHandler);
 	sem = sem_open(DATA_INPUT_SEMAPHORE, O_CREAT, 0777, 0);
     
 
-    //Definition d'une variable de type message can
-    uCAN1_MSG recCanMsg;
+  //Definition d'une variable de type message can
+  uCAN1_MSG recCanMsg;
     
-    //Definition d'une variable pour stocker la distance parcourue et la vitesse du train
-    struct TrainInfo train1;
-    // Definition du nom de l'interface can du raspberry pi. A controler au niveau systeme.
-    char *NomPort = "can0";
-    // Definition d'une variable pour memoriser le descripteur de port CAN ouvert
-    int canPort;
-    //Definition d'un filtre CAN pour preciser les identifiant a lire
-    struct can_filter rfilter[1]; //Le filtre sera limite ici a une variable
+  //Definition d'une variable pour stocker la distance parcourue et la vitesse du train
+  struct TrainInfo train1;
+  // Definition du nom de l'interface can du raspberry pi. A controler au niveau systeme.
+  char *NomPort = "can0";
+  // Definition d'une variable pour memoriser le descripteur de port CAN ouvert
+  int canPort;
+  //Definition d'un filtre CAN pour preciser les identifiant a lire
+  struct can_filter rfilter[1]; //Le filtre sera limite ici a une variable
 
-    //Initialisation du filtre
-    rfilter[0].can_id   = MC_ID_SCHEDULEUR_MESURES; //On indique que l'on veut lire ces trames CAN
-    rfilter[0].can_mask = CAN_SFF_MASK;
+  //Initialisation du filtre
+  rfilter[0].can_id   = MC_ID_SCHEDULEUR_MESURES; //On indique que l'on veut lire ces trames CAN
+  rfilter[0].can_mask = CAN_SFF_MASK;
     
-    train1.distance =0;
-    train1.vit_consigne =0;
-    train1.vit_mesuree =0;
-    train1.nb_impulsions =0;
-    /* Creation du descripteur de port a utilise pour communiquer sur le bus CAN */
-    canPort = canLinux_init_prio(NomPort);
-    // Mise en place d'un filtre
-    canLinux_initFilter(rfilter, sizeof(rfilter));
+  train1.distance =0;
+  train1.vit_consigne =0;
+  train1.vit_mesuree =0;
+  train1.nb_impulsions =0;
+  /* Creation du descripteur de port a utilise pour communiquer sur le bus CAN */
+  canPort = canLinux_init_prio(NomPort);
+  // Mise en place d'un filtre
+  canLinux_initFilter(rfilter, sizeof(rfilter));
   
-    // Deverouillage de la limite de vitesse autorisee
-    WriteVitesseLimite(MAX_CONSIGNE_VITESSE_AUTORISEE);
+  // Deverouillage de la limite de vitesse autorisee
+  WriteVitesseLimite(MAX_CONSIGNE_VITESSE_AUTORISEE);
 
 
+  //Lancement de la communication
+
+  //Variable thread qui gère la communication
+  pthread_mutex_init(&mutex_lock_communication_vers_serveur,NULL);
+  pthread_t thread_communication;
+  pthread_create(&thread_communication,NULL,communiquer,NULL);
+
+  
+
+  // Main loop
+  while ((!terminateProgram) && (!hedge->terminationRequired)){
     
-    //Lancement de la communication
-
-    //Variable thread qui gère la communication
-    pthread_mutex_init(&mutex_lock_communication,NULL);
-    pthread_t thread_communication;
-    pthread_create(&thread_communication,NULL,communiquer,NULL);
-
-    
-
-
-    // Main loop
-    while ((!terminateProgram) && (!hedge->terminationRequired))
-    {
-        
-
-        if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
-		{
-			printf("clock_gettime error\n");
-			return -1;
+    if (clock_gettime(CLOCK_REALTIME, &ts) == -1){
+		   printf("clock_gettime error\n");
+		   return -1;
 		}
-		ts.tv_sec += 2;
-		sem_timedwait(sem,&ts);
+	 ts.tv_sec += 2;
+	 sem_timedwait(sem,&ts);
 
-        ecriture_update = true;
-        //Capture de la position et cas échéant envoie de l'information au thread de communication
-        get_position(hedge);
+    //ecriture_update = true;
+    //Capture de la position et cas échéant envoie de l'information au thread de communication
+    get_position(hedge);
         
-        //Traitement de la trame pour evaluer la distance de deplacement du train
-        TraitementDonnee(&recCanMsg, &train1); 
-        //Ecriture d'une nouvelle consigne de vitesse
-        
-        WriteVitesseConsigne(/*Vitesse consigne*/, 1);
-
-        //Attente de 100ms
-        usleep(100 * 1000);
-    }
+    //Traitement de la trame pour evaluer la distance de deplacement du train
+    TraitementDonnee(&recCanMsg, &train1); 
     
-    // Exit
-    stopMarvelmindHedge (hedge);
-    destroyMarvelmindHedge (hedge);
-    return 0;
+    
+    //Ecriture d'une nouvelle consigne de vitesse
+    pthread_mutex_lock(&mutex_lock_communication_vers_serveur);
+    comServ.vitesse = train1.vit_mesuree;
+    pthread_mutex_unlock(&mutex_lock_communication_vers_serveur);
+    float v_actu = train1.vit_mesuree;
+    
+    float vit_consigne = f(train1.vit_mesuree);
+    WriteVitesseConsigne(/*Vitesse consigne*/, 1);
+
+    //Attente de 100ms
+    usleep(100 * 1000);
+  }
+    
+  // Exit
+  stopMarvelmindHedge (hedge);
+  destroyMarvelmindHedge (hedge);
+  return 0;
 }
+

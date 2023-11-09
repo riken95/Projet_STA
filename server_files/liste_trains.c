@@ -21,10 +21,13 @@ Train * Train_Initialiser(char * NomTrain){
 }
 
 void Train_Free(Train * Train){
+  if(Train && Train->DonneesThread)
     free(Train->DonneesThread->shared_data);
+  if(Train)
     free(Train->DonneesThread);
     free(Train);
-}
+  }
+
 
 double Train_distanceEuclidienne(Train * Train1, Train * Train2){
     if(!(Train1 && Train2)) return -1;
@@ -40,11 +43,11 @@ void Train_Liste_Free(Train * * liste){
     free(liste);
 }
 
-int Train_Liste_Ajouter_Train(Train * * liste, Train * train){
+int Train_Liste_Ajouter_Train(Train * * liste, Train * train, int i){
     if(!liste) return -1;
+    if(i>=MAX_TRAINS_LISTE) return -1;
 
-    for(int i=0;i<MAX_TRAINS_LISTE;i++)
-    if(liste[i]){
+    if(!liste[i]){
         liste[i] = train;
         return i;
     }
@@ -59,17 +62,11 @@ Train * Train_Liste_Retirer_Train(Train * * liste, int i){
 }
 
 void Train_Liste_Calculer_Distances_Securite(Train * * liste){
-    if(!liste) return;
+  if(!liste) return;
 
-    for (int i=0;    i<MAX_TRAINS_LISTE-1;   i++)
-    for (int j=i+1;  j<MAX_TAILLE_NOM_TRAIN; j++)
-    if  (liste[i] && liste[j]){
-        pthread_mutex_lock(&liste[i]->DonneesThread->mutex);
-        double distance = Train_distanceEuclidienne(liste[i],liste[j]);
-        (liste[i]->distanceSecurite>distance)? liste[i]->distanceSecurite=distance: 0;
-        (liste[j]->distanceSecurite>distance)? liste[j]->distanceSecurite=distance: 0;
-        pthread_mutex_lock(&liste[i]->DonneesThread->mutex);
-    }
+  for(int i=1; i<MAX_TRAINS_LISTE; i++)//on commence à 1 car on veut pas modifier le train de depart
+    liste[i]->distanceSecurite = Train_distanceEuclidienne(&liste[i],&liste[i-1]);
+  
 }
 
 bool Train_envoyer_message(Train * Train, char message[], bool forcer_message){

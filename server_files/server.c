@@ -73,52 +73,29 @@ void * accepter_connexions_tcp(void * arg){
     return NULL;
 }
 
-void * communication_tcp(void * arg){
+void * lecture_tcp(void * arg){
   struct ArgCommunication * client = (struct ArgCommunication *) arg;
   Train * train = client->train;
   SOCKET socket = client->socket;
   int n_train = client->n_train;
-  struct timeval timeout;
-  timeout.tv_sec = 5; // Attendez 5 secondes au maximum
-  timeout.tv_usec = 0;
-  fd_set read_fds;
-  FD_ZERO(&read_fds);
-  FD_SET(socket, &read_fds);
   struct CommunicationTrain position;
   while(1){
-    
-    // Utilisation de select pour vérifier la connexion
-    int ready = select(socket + 1, &read_fds, NULL, NULL, &timeout);
-    pthread_mutex_lock(&train->DonneesThread->mutex);
-    if (ready == -1) {
-        perror("Erreur lors de l'utilisation de select");
-        close(socket);
-        Train_Free(train);
-        free(client);
-        exit(EXIT_FAILURE);
-    } else if (ready == 0) {
-        printf("La connexion a expiré ou n'est pas disponible.\n");
-        close(socket);
-        Train_Free(train);
-        free(client);
-        exit(EXIT_SUCCESS);
-    } else {
-        printf("La connexion est toujours active.\n");
-        // Vous pouvez effectuer des opérations de lecture/écriture ici si la connexion est active.
-        read(socket,&position,sizeof(position));
-        train->positionX = position.x;
-        train->positionY = position.y;
-        train->velocite = position.vitesse;
-        printf("Position client : %d, %d, %f",position.x,position.y,position.vitesse);
+      read(socket,&position,sizeof(position));
+      pthread_mutex_lock(&train->DonneesThread->mutex);
+      train->positionX = position.x;
+      train->positionY = position.y;
+      train->velocite = position.vitesse;
+      printf("Position client : %d, %d, %f",position.x,position.y,position.vitesse);
+      pthread_mutex_unlock(&train->DonneesThread->mutex);
 
     }
-    struct CommunicationVersTrain * communication_train = malloc(sizeof(struct CommunicationVersTrain));
+    /*struct CommunicationVersTrain * communication_train = malloc(sizeof(struct CommunicationVersTrain));
     communication_train->code_erreur = -1;
     communication_train->distance_a_parcourir=train->distanceSecurite;
     communication_train->vitesse_consigne = train->velocite;
     write(socket,&communication_train,sizeof(communication_train));
-    pthread_mutex_unlock(&train->DonneesThread->mutex);
-  }
+    pthread_mutex_unlock(&train->DonneesThread->mutex);*/
+    
 }
 
 void * entrees_utilisateur(void * arg){
@@ -198,7 +175,23 @@ int main(int argc, char * argv[]){
       if(strcmp(EntreesUtilisateur,"")){
         if(!strcmp(EntreesUtilisateur,"quit"))
           exit(EXIT_SUCCESS);
-        
+
+
+
+        pthread_mutex_lock(&dataAccepterConnexions.mutex);
+        if(isnumber(EntreesUtilisateur)&&socket_source_cible->sock_cible != NULL){//Nouvelle connexion
+        int numero = atoi(EntreesUtilisateur);
+        struct ArgCommunication * comm = malloc(sizeof(struct ArgCommunication));
+        Train * NouveauTrain = Train_Initialiser("Nouveau train");
+        comm->train = NouveauTrain;
+        comm->socket = *socket_source_cible->sock_cible;
+        Train_Liste_Ajouter_Train(listeClients,NouveauTrain,numero);
+        comm->n_train = numero;
+        socket_source_cible->sock_cible = NULL;
+        pthread_create(comm->train->DonneesThread->thread,NULL,lecture_tcp,(void *) comm);
+      }
+      pthread_mutex_unlock(&dataAccepterConnexions.mutex);
+
 
         printf("Vous avez écrit : %s\n",EntreesUtilisateur);
         strcpy(EntreesUtilisateur,"");//Réinitialisation de la chaine de caractères
@@ -209,14 +202,7 @@ int main(int argc, char * argv[]){
       // ============== Nouvelles connexions ==============
       pthread_mutex_lock(&dataAccepterConnexions.mutex);
       if(socket_source_cible->sock_cible != NULL){//Nouvelle connexion
-        alerte("Nouvelle connexion !\n");
-        struct ArgCommunication * comm = malloc(sizeof(struct ArgCommunication));
-        Train * NouveauTrain = Train_Initialiser("Nouveau train");
-        comm->train = NouveauTrain;
-        comm->socket = *socket_source_cible->sock_cible;
-        int n_train = Train_Liste_Ajouter_Train(listeClients,NouveauTrain);
-        comm->n_train = n_train;
-        socket_source_cible->sock_cible = NULL;
+        printf("Nouvelle connexion, veuillez rentrer un numéro\n");
       }
       pthread_mutex_unlock(&dataAccepterConnexions.mutex);
 
@@ -231,7 +217,6 @@ int main(int argc, char * argv[]){
         pthread_mutex_lock(&listeClients[i]->DonneesThread->mutex);
         struct Train_Communication_Messages * com;
         com = listeClients[i]->DonneesThread->shared_data;
-
         pthread_mutex_unlock(&listeClients[i]->DonneesThread->mutex);
         
       }
